@@ -1,0 +1,84 @@
+body {
+    background-color: #1a1a1a;
+    margin: 0;
+}
+
+.wrapper {
+    /* position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); */
+    /* width: 500px; */
+    /* height: 500px; */
+    display: flex;
+    justify-content: space-between;
+    background-color: transparent;
+}
+
+.score{
+    margin: auto;
+    color: white;
+    font-size: 2rem;
+}
+
+.grid {
+    display: grid;
+    width: 500px;
+    height: 500px;
+    grid-template-columns: repeat(50, minmax(0, 1fr));
+}
+
+.tile {
+    width: 10px;
+    height: 10px;
+    background-color: black;
+}
+
+.tile-snake-white {
+    background-color: white;
+}
+
+.tile-snake-blue {
+    background-color: blue;
+}
+
+.tile-empty {
+    background-color: black;
+}
+
+.tile-apple {
+    background-color: red;
+}
+
+@keyframes bite-anim{
+    0% {background-color: white;}
+    50% {background-color: red;}
+    100% {background-color: white;}
+}
+
+.tile-snakebite{
+    animation-name: bite-anim;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+}
+
+.text-wrapper{
+    width: 500px;
+    margin: 0 auto;
+}
+
+.bottom-text{
+    color:white;
+    text-align: center;
+    margin: auto 0;
+    display: none;
+    font-size: 2.5rem;
+}
+
+.blue-text{
+    color: blue;
+}
+
+.white-text{
+    color: white;
+}
