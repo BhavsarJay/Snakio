@@ -247,6 +247,7 @@ function Player() {
     let score_elem;
     let snakeType;
     let step_intvl;
+    let connection;
 
     this.mySnake = function() {
     return snake;
@@ -257,9 +258,10 @@ function Player() {
     this.get_controls = function() {
     return myOptn.input;
     }
-    this.init = function(_board, optn, _apple) {
+    this.init = function(_board, optn, _apple, ably) {
     board = _board;
     apple = _apple;
+    connection = ably;
     myOptn = optn;
     inp_direction = optn.startDir;
     snake.clean(board);
@@ -286,7 +288,7 @@ function Player() {
         // manager.reset();
         clearInterval(step_intvl);      
         setTimeout(()=> {
-        this.init(board, myOptn, apple)
+        this.init(board, myOptn, apple, connection);
         }, 2000);
         console.log("Issues in calculating nextPos");
     }
@@ -301,7 +303,7 @@ function Player() {
         else {
         clearInterval(step_intvl);                
         setTimeout(()=> {
-            this.init(board, myOptn, apple)
+            this.init(board, myOptn, apple, connection);
         }, 2000);
         //Show which snake part did we hit
         board.updateTile(nextTile, Tiletype.SNAKEBITE);
@@ -323,36 +325,37 @@ function Manager() {
     let step_intvl;
     let step_intvl2;
     let listner = false;
-    this.init = function(optns) {
-    board.init();
-    apple.init(board);
-    p1.init(board, optns[0], apple);
-    p2.init(board, optns[1], apple);
+    this.init = function(optns, _ably) {
+        board.init();
+        apple.init(board);
+        p1.init(board, optns[0], apple, _ably);
+        // p2.init(board, optns[1], apple, ably);
 
-    //Listen to keydowns
-    if (!listner) {
-        window.addEventListener("keydown",
-        keyDownHandler.bind(null, players),
-        true);
-        listner = true;
-    }
+        //Listen to keydowns
+        if (!listner) {
+            window.addEventListener("keydown",
+            keyDownHandler.bind(null, players),
+            true);
+            listner = true;
+        }
 
-    //Start
-    
+        
+        
     }
 
     this.reset = function() {
-    console.log("Game Over");
-    clearInterval(step_intvl);
-    clearInterval(step_intvl2);
+        console.log("Game Over");
+        clearInterval(step_intvl);
+        clearInterval(step_intvl2);
+        
 
-    gameover_txt = document.getElementById('restart-text');
-    gameover_txt.style.display = 'block';
+        gameover_txt = document.getElementById('restart-text');
+        gameover_txt.style.display = 'block';
 
-    setTimeout(function() {
-        manager.init();
-        gameover_txt.style.display = 'none';
-    }, 2000);
+        setTimeout(function() {
+            manager.init();
+            gameover_txt.style.display = 'none';
+        }, 2000);
     }
 }
 
@@ -374,28 +377,23 @@ const manager = new Manager();
 manager.init(optns);
 
 
-(async function() {
-    const ws = await connectToServer();
+function Network(){
+    this.code = "69";
+    let ably;
 
-    ws.onmessage = (webSocketMessage) => {
-        const messageBody = JSON.parse(webSocketMessage.data);
-        console.log(messageBody);
-    };
+    this.init = async function() {
+        // get the channel to subscribe to
+        const channel = ably.channels.get('quickstart');
 
-    document.body.onmousemove = (evt) => {
-        const messageBody = { x: evt.clientX, y: evt.clientY };
-        ws.send(JSON.stringify(messageBody));
-    };
-
-    async function connectToServer() {
-        const ws = new WebSocket('ws://refactored-xylophone-r6g46p7g676fj57-7071.app.github.dev/script.js');
-        return new Promise((resolve, reject) => {
-        const timer = setInterval(() => {
-            if (ws.readyState === 1) {
-            clearInterval(timer);
-            resolve(ws);
-            }
-        }, 10);
+        /* 
+        Subscribe to a channel. 
+        The promise resolves when the channel is attached 
+        (and resolves synchronously if the channel is already attached).
+        */
+        await channel.subscribe('greeting', (message) => {
+            console.log('Received a message in realtime: ' + message.data);
         });
+
+        await channel.publish('greeting', 'hello!');
     }
-})();
+}

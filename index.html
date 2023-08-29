@@ -2,27 +2,19 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Snakio</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
-  <script type="module" src="./my-module.js"></script>
-  <script type="module" src="./my-script.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Snakio</title>
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
 </head>
 
 <body>
-
-  <div class="wrapper">
-    <div id="score-white" class="score white-text">1</div>
-    <div class="grid">
+    <div class="main-container">
+        <input type="text" name="player-name" id="inp-name" placeholder="Player Name">
+        <input type="text" name="lobby-code" id="lobby-code" placeholder="Enter Lobby Code">
+        <button id="start-btn" disabled>Enter</button>
     </div>
-    <div id="score-blue" class="score score-blue blue-text">1</div>
-  </div>
-  <div class="text-wrapper">
-    <div id="restart-text" class="bottom-text">GAME OVER!</div>
-    <!-- <div id="score-text" class="text"></div> -->
-  </div>
-  <script src="script.js"></script>
+    <script type="module" src="server.js"></script>
 </body>
 
 </html>

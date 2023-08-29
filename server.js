@@ -1,47 +1,37 @@
-const WebSocket = require('ws');
+let startBtn = document.getElementById("start-btn");
+let playerNameElem = document.getElementById("inp-name");
+let lobbyCodeElem = document.getElementById("lobby-code");
+let lobbyCode;
+let playerName;
+let ably;
 
-const wss = new WebSocket.Server({ port: 7071 });
-const clients = new Map();
+startBtn.addEventListener("click", btnClick);
+playerNameElem.addEventListener("input", onEdit);
+lobbyCodeElem.addEventListener("input", onEdit);
 
-wss.on('connection', (ws) => {
-    const id = uuidv4();
-    const color = Math.floor(Math.random() * 360);
-    const metadata = { id, color };
-
-    clients.set(ws, metadata);
-
-    ws.on('message', (messageAsString) => {
-      const message = JSON.parse(messageAsString);
-      const metadata = clients.get(ws);
-
-      message.sender = metadata.id;
-      message.color = metadata.color;
-
-      [...clients.keys()].forEach((client) => {
-        client.send(JSON.stringify(message));
-      });
-    });  
-});
-
-wss.on('upgrade', function upgrade(request, socket, head) {
-  const pathname = url.parse(request.url).pathname;
-
-  if (pathname === "/") {
-      wss.handleUpgrade(request, socket, head, function done(ws) {
-          wss.emit('connection', ws, request);
-      });
-  }
-});
-
-wss.on("close", () => {
-  clients.delete(ws);
-});
-
-function uuidv4() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+function onEdit() {
+    let flag = playerNameElem.value.length * lobbyCodeElem.value.length;
+    if(flag === 0) return;
+    else {
+        startBtn.disabled = false;
+    }
 }
 
-console.log("wss up");
+async function btnClick(){
+    ably = await connectToServer();
+    playerName = playerNameElem.value;
+    lobbyCode = lobbyCodeElem.value;
+    location.href += 'lobby.html';
+}
+
+// Establish onnection
+async function connectToServer() {
+    // Using promises
+    const API_KEY = 'MBW_Nw.CBpg4A:raS-h2l6bov2hKtakcbffFyMz3UCs0eLU2Fe153zn2M';
+    const ably = new Ably.Realtime.Promise(API_KEY);
+    await ably.connection.once("connected");
+    console.log('Connected to Ably!');
+    return ably;
+}
+
+export { playerName, lobbyCode , ably};
