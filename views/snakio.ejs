@@ -10,7 +10,22 @@
 </head>
 
 <body>
-
+  <div class="lobby-container">
+    <div class="player-container">
+      <table>
+          <tr>
+            <th>Players</th>
+          </tr>
+          <tr id="player-list">
+            <td id="pname"><%= name %></td>
+            <!-- <td class="player-name">Jay</td> -->
+          </tr>
+      </table>
+    </div>
+  </div>
+  <div class="btn-container">
+    <button id="start-btn" onclick="onStart()" disabled>Start</button>
+  </div>
   <div class="wrapper">
     <div id="score-white" class="score white-text">1</div>
     <div class="grid">
@@ -21,7 +36,7 @@
     <div id="restart-text" class="bottom-text">GAME OVER!</div>
     <!-- <div id="score-text" class="text"></div> -->
   </div>
-  <script src="script.js"></script>
+  <script src="snakio.js"></script>
 </body>
 
 </html>

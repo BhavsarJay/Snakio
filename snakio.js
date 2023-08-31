@@ -247,7 +247,8 @@ function Player() {
     let score_elem;
     let snakeType;
     let step_intvl;
-    let connection;
+    this.connection;
+    this.isMine;
 
     this.mySnake = function() {
     return snake;
@@ -258,89 +259,108 @@ function Player() {
     this.get_controls = function() {
     return myOptn.input;
     }
-    this.init = function(_board, optn, _apple, ably) {
-    board = _board;
-    apple = _apple;
-    connection = ably;
-    myOptn = optn;
-    inp_direction = optn.startDir;
-    snake.clean(board);
-    snake.init(board, optn.startPos, optn.startDir, optn.color);
-    controls = optn.input;
-    score_elem = document.getElementById("score-" + optn.color);
-    if(optn.color =='white') snakeType = Tiletype.SNAKE1;
-    else snakeType = Tiletype.SNAKE2;
+    this.init = async function(_board, optn, _apple, _network, isMine) {
+        board = _board;
+        apple = _apple;
+        if(_network != undefined) this.connection = _network;
+        if(isMine != undefined) this.isMine = isMine;
+        myOptn = optn;
+        inp_direction = optn.startDir;
+        snake.clean(board);
+        snake.init(board, optn.startPos, optn.startDir, optn.color);
+        controls = optn.input;
+        score_elem = document.getElementById("score-" + optn.color);
+        if(optn.color =='white') snakeType = Tiletype.SNAKE1;
+        else snakeType = Tiletype.SNAKE2;
+        
+        if(this.isMine){
+            step_intvl = setInterval(this.step, 80);
+        }
+        else{
+            console.log(this.connection);
+            // pos_intvl = setInterval(this.getPos, 200);
+            await this.connection.channel.subscribe("nextPos", (message) => {
+                let nextPos = JSON.parse(message.data);
+                // this.step(nextPos);
+            });
+        }
+    }
+    this.step = (nextPos) => {
+        if(nextPos === undefined){
+            let dot = parseInt(snake.direction) + parseInt(inp_direction);
+            if (dot === 1 || dot === 5) {
+                nextPos = GetNextPos(snake.position, snake.direction);
+            }
+            else {
+                nextPos = GetNextPos(snake.position, inp_direction);
+                snake.direction = inp_direction;
+            }
+            this.connection.send("nextPos", JSON.stringify(nextPos));
+        }
 
-    step_intvl = setInterval(this.step, 80);
-    }
-    this.step = () => {
-    let dot = parseInt(snake.direction) + parseInt(inp_direction);
-    if (dot === 1 || dot === 5) {
-        nextPos = GetNextPos(snake.position, snake.direction);
-    }
-    else {
-        nextPos = GetNextPos(snake.position, inp_direction);
-        snake.direction = inp_direction;
-    }
 
-
-    if (nextPos === undefined || nextPos === 0) {
-        // manager.reset();
-        clearInterval(step_intvl);      
-        setTimeout(()=> {
-        this.init(board, myOptn, apple, connection);
-        }, 2000);
-        console.log("Issues in calculating nextPos");
-    }
-    else {
-        nextTile = board.getTile(nextPos);
-        if (nextTile.type === Tiletype.EMPTY)
-        snake.move(board, nextTile, nextPos);
-        else if (nextTile.type === Tiletype.APPLE) {
-        snake.eat(board, nextTile, nextPos);
-        apple.init(board);
+        if (nextPos === undefined || nextPos === 0) {
+            // manager.reset();
+            // Player Hit wall
+            clearInterval(step_intvl);      
+            setTimeout(()=> {
+            this.init(board, myOptn, apple, this.connection, this.isMine);
+            }, 2000);
+            console.log("Issues in calculating nextPos");
         }
         else {
-        clearInterval(step_intvl);                
-        setTimeout(()=> {
-            this.init(board, myOptn, apple, connection);
-        }, 2000);
-        //Show which snake part did we hit
-        board.updateTile(nextTile, Tiletype.SNAKEBITE);
+            nextTile = board.getTile(nextPos);
+            if (nextTile.type === Tiletype.EMPTY)
+            snake.move(board, nextTile, nextPos);
+            else if (nextTile.type === Tiletype.APPLE) {
+            snake.eat(board, nextTile, nextPos);
+            // apple.init(board);       
+            }
+            else {
+            clearInterval(step_intvl);                
+            setTimeout(()=> {
+                this.init(board, myOptn, apple, connection, isMine);
+            }, 2000);
+            //Show which snake part did we hit
+            board.updateTile(nextTile, Tiletype.SNAKEBITE);
+            }
         }
-    }
 
-    // Update Score
-    score_elem.innerHTML = snake.queue.length;
+        // Update Score
+        score_elem.innerHTML = snake.queue.length;
     }
-    
 }
 
 function Manager() {
     const board = new Board();
     const apple = new Apple();
-    const p1 = new Player();
-    const p2 = new Player();
-    const players = [p1, p2];
+    this.members = [];
+    let myPlayer;
     let step_intvl;
     let step_intvl2;
     let listner = false;
-    this.init = function(optns, _ably) {
+    this.init = async function(optns, network) {
         board.init();
         apple.init(board);
-        p1.init(board, optns[0], apple, _ably);
-        // p2.init(board, optns[1], apple, ably);
+
+        for(member of this.members){
+            let player = new Player();
+            if(player.clientId === myId){
+                myPlayer = player;
+                player.init(board, JSON.parse(member.data), apple, network, true);
+            }
+            else{
+                player.init(board, JSON.parse(member.data), apple, network, false);
+            }
+        }
 
         //Listen to keydowns
         if (!listner) {
             window.addEventListener("keydown",
-            keyDownHandler.bind(null, players),
+            keyDownHandler.bind(null, this.members),
             true);
             listner = true;
         }
-
-        
-        
     }
 
     this.reset = function() {
@@ -359,41 +379,126 @@ function Manager() {
     }
 }
 
-const optn1 = {
-    startPos: {x:1, y:1},
+function Network(){
+    this.code = "69";
+    this.ably;
+    this.channel;
+    this.manager;
+    this.connectToServer = async function() {
+        // Establish Connection
+        // Using promises
+        const API_KEY = 'MBW_Nw.CBpg4A:raS-h2l6bov2hKtakcbffFyMz3UCs0eLU2Fe153zn2M';
+        const ably = new Ably.Realtime.Promise({
+            key: API_KEY,
+            clientId: myId,
+        });
+        await ably.connection.once("connected");
+        console.log('Connected to Ably!');
+        this.ably = ably;
+        // get the channel to subscribe to
+        this.channel = this.ably.channels.get('snakio');
+    }
+
+    function updateLobbyUI(members) {
+        let playerList = document.getElementById("player-list");
+        let memberList = members.map((member) => {
+            return `<td class="player-name">${member.clientId}</td>`;
+        }).join("");
+        playerList.innerHTML = memberList;
+    }
+
+    this.enterPresence = async function(memberData) {
+        // Enter the presence set of the "chatroom" channel
+        await this.channel.presence.enter(memberData, (err) => {
+            if (err) {
+                return console.error("Error entering presence set.");
+            }
+            console.log("This client has entered the presence set.");
+
+            
+        });
+
+        // Subscribe to the presence set to receive updates
+        await this.channel.presence.subscribe((presenceMessage) => {
+            const { action, clientId } = presenceMessage;
+            console.log("Presence ", action, ": ", clientId);
+
+            // Update the list of channel members when the presence set changes
+            this.channel.presence.get((err, members) => {
+                if (err) return console.error(`Error retrieving presence data: ${err}`);
+
+                updateLobbyUI(members);
+
+                if(action ==='enter' && members.length === 1){
+                    playerOptn.isHost = true;
+                    newOptns = JSON.stringify(playerOptn);
+                    this.channel.presence.update(newOptns);
+                }
+                else if(action === "leave")
+                {
+                    let host_avail = false;
+                    for (const member of members) {
+                        if(JSON.parse(member.data).isHost === 'true'){
+                            console.log("host: ", member.clientId);
+                            host_avail = true;
+                            break;
+                        }
+                    }
+                    if(!host_avail){
+                        console.log(members[0].clientId === myId);
+                        // if i'm 0th member then make me host
+                        if(members[0].clientId === myId){
+                            console.log("Setting myself to host - ", myId);
+                            playerOptn.isHost = true;
+                            this.channel.presence.update(JSON.stringify(playerOptn));
+                        }
+                    }
+                }
+
+                this.manager.members = members;
+            });
+        });
+    }           
+    this.subscribe = async function (streamName){
+        await this.channel.subscribe(streamName, (message) => {
+            console.log(`${streamName}: ${message.data}`);
+            if(streamName === "lobby" && message.data === "start"){
+                manager.init(playerOptn, this);
+            }
+        }); 
+    }
+    this.send = async function(streamName, data){
+        await this.channel.publish(streamName, data);
+    }
+}
+
+const playerOptn = {
+    startPos: {x:1, y:Math.random()*50},
     startDir: Direction.RIGHT,
     input: 'arrows',
     color: 'white',
-}
-const optn2 = {
-    startPos: {x:1, y:50},
-    startDir: Direction.RIGHT,
-    input: 'wasd',
-    color: 'blue',
+    isHost: false,
 }
 
-let optns = [optn1, optn2]
+async function connectAbly() {
+    let ably = await network.connectToServer();
+    await network.enterPresence(JSON.stringify(playerOptn));
+    await network.subscribe("lobby");
+
+    let btn_intvl = setInterval((btn_intvl) => {
+        if(playerOptn.isHost){
+            document.getElementById("start-btn").disabled = false;
+            clearInterval(btn_intvl);
+        }
+    }, 2000);
+}
+async function onStart(){
+    if(playerOptn.isHost) network.send("lobby", "start");
+}
+
+const myId = document.getElementById("pname").innerHTML;
 const manager = new Manager();
-manager.init(optns);
+let network = new Network();
+network.manager = manager;    
 
-
-function Network(){
-    this.code = "69";
-    let ably;
-
-    this.init = async function() {
-        // get the channel to subscribe to
-        const channel = ably.channels.get('quickstart');
-
-        /* 
-        Subscribe to a channel. 
-        The promise resolves when the channel is attached 
-        (and resolves synchronously if the channel is already attached).
-        */
-        await channel.subscribe('greeting', (message) => {
-            console.log('Received a message in realtime: ' + message.data);
-        });
-
-        await channel.publish('greeting', 'hello!');
-    }
-}
+connectAbly();
