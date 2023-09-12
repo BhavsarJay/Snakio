@@ -318,13 +318,10 @@ function Player() {
     }, 333);
   };
   this.step = function (serverPos) {
-    // if (nextServerPos != undefined) {
-    //   nextPos = nextServerPos;
-    //   nextServerPos = undefined;
-    // }
     let nextPos = {};
-    if (serverPos != undefined) {
-      nextPos = serverPos;
+    if (false && nextServerPos != undefined) {
+      nextPos = nextServerPos;
+      nextServerPos = undefined;
     } else {
       let nextDir = this.isValidDirection(inp_direction)
         ? inp_direction
@@ -332,7 +329,7 @@ function Player() {
       snake.direction = nextDir;
       nextPos = GetNextPos(snake.position, nextDir);
     }
-
+    if (serverPos != undefined) nextPos = serverPos;
     let nextTile;
     if (nextPos === undefined || nextPos === 0) {
       // manager.reset();
@@ -364,18 +361,11 @@ function Player() {
       }
     }
 
+    if (playerOptn.isHost) this.sendPosition(nextPos, tick);
+
     // Update Score
     score_elem.innerHTML = snake.length();
     tick++;
-
-    if (playerOptn.isHost) {
-      //Send pos with the same client tick to clients
-      let serverData = {};
-      serverData.pos = nextPos;
-      serverData.tick = tick;
-      network.publish("position-" + myOptn.id, serverData);
-      // console.log("ServerSend: ","position-",myOptn.id," | Data: ",serverData);
-    }
   };
   this.isValidDirection = function (direction) {
     let dot = parseInt(snake.direction) + parseInt(direction);
@@ -397,12 +387,23 @@ function Player() {
       network.publish("input-" + myOptn.id, data);
     }
   };
+  this.sendPosition = function (position, tick) {
+    //Send pos with the same client tick to clients
+    let data = {};
+    data.pos = position;
+    data.tick = tick;
+    network.publish("position-" + myOptn.id, data);
+    // console.log("ServerSend: ","position-",myOptn.id," | Data: ",data);
+  };
   this.handlePosition = function (nextPos, tick) {
     // console.log("Position Received ", nextPos);
     if (myOptn.id != playerOptn.id) {
       // directly set the position for remote players
+      // nextServerPos = nextPos;
       this.step(nextPos);
     } else {
+      // nextServerPos = nextPos;
+      this.step(nextPos);
       // for (let i = 1; i < tick; i++) {
       //   if (this.client_inp_buffer[i] != undefined) {
       //     delete this.client_inp_buffer[i];
