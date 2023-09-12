@@ -1,42 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Snakio</title>
+    <link href="snakio.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Rubik+Iso&family=Rubik+Vinyl&display=swap");
+    </style>
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Snakio</title>
-  <link href="snakio.css" rel="stylesheet" type="text/css" />
-  <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
-</head>
-
-<body>
-  <div class="lobby-container">
-    <div class="player-container">
-      <table>
-          <tr>
-            <th>Players</th>
-          </tr>
-          <tr id="player-list">
-            <td id="pname"><%= name %></td>
-            <!-- <td class="player-name">Jay</td> -->
-          </tr>
-      </table>
+  <body>
+    <div class="main-wrapper">
+      <div class="lobby-container">
+        <div class="player-container">
+          <table id="player-list">
+            <tr>
+              <th>Players</th>
+              <th>Score</th>
+            </tr>
+            <tr>
+              <td id="pname"><%= name %></td>
+              <td>0</td>
+            </tr>
+          </table>
+        </div>
+        <div class="btn-container">
+          <button id="start-btn" onclick="onStart()" disabled>Start</button>
+        </div>
+      </div>
+      <div class="wrapper">
+        <!-- <div id="score-white" class="score white-text">1</div> -->
+        <div class="grid"></div>
+        <!-- <div id="score-blue" class="score score-blue blue-text">1</div> -->
+      </div>
     </div>
-  </div>
-  <div class="btn-container">
-    <button id="start-btn" onclick="onStart()" disabled>Start</button>
-  </div>
-  <div class="wrapper">
-    <div id="score-white" class="score white-text">1</div>
-    <div class="grid">
-    </div>
-    <div id="score-blue" class="score score-blue blue-text">1</div>
-  </div>
-  <div class="text-wrapper">
-    <div id="restart-text" class="bottom-text">GAME OVER!</div>
-    <!-- <div id="score-text" class="text"></div> -->
-  </div>
-  <script src="snakio.js"></script>
-</body>
-
+    <script src="/snakio.js"></script>
+  </body>
 </html>
