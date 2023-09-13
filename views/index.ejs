@@ -1,28 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
     <title>Snakio</title>
-</head>
+  </head>
 
-<body>
-    <form class="main-container" action="/" method="post" >
-        <input type="text" name="name" id="inp-name" placeholder="Player Name" oninput="onEdit()">
-        <input type="text" name="code" id="lobby-code" placeholder="Enter Lobby Code" oninput="onEdit()">
-        <button type="submit" name="submit" id="start-btn" disabled>Enter</button>
+  <body>
+    <form class="main-container" action="/" method="post">
+      <input
+        type="text"
+        name="name"
+        id="inp-name"
+        placeholder="Player Name"
+        oninput="onEdit()"
+      />
+      <!-- <input
+        type="text"
+        name="code"
+        id="lobby-code"
+        placeholder="Enter Lobby Code"
+        oninput="onEdit()"
+      /> -->
+      <button type="submit" name="submit" id="start-btn" disabled>Enter</button>
     </form>
     <!-- <script type="module" src="server.js"></script> -->
     <script>
-        let startBtn = document.getElementById("start-btn");
-        let playerNameElem = document.getElementById("inp-name");
-        let lobbyCodeElem = document.getElementById("lobby-code");
-        function onEdit() {
-            let flag = playerNameElem.value.length * lobbyCodeElem.value.length;
-            startBtn.disabled = (flag === 0)? true : false;
-        }
+      let startBtn = document.getElementById("start-btn");
+      let playerNameElem = document.getElementById("inp-name");
+      //   let lobbyCodeElem = document.getElementById("lobby-code");
+      function onEdit() {
+        // let flag = playerNameElem.value.length * lobbyCodeElem.value.length;
+        let flag = playerNameElem.value.length;
+        startBtn.disabled = flag === 0 ? true : false;
+      }
     </script>
-</body>
-
+  </body>
 </html>

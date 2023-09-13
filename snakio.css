@@ -1,5 +1,5 @@
 body {
-  background-color: #1a1a1a;
+  background-color: #040026;
   margin: 0;
   color: azure;
   font-family: "Rubik Vinyl", cursive;
@@ -20,18 +20,6 @@ body {
 .btn-container {
   width: 100px;
   margin: 0 auto;
-}
-
-.wrapper {
-  /* position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%); */
-  /* width: 500px; */
-  /* height: 500px; */
-  display: flex;
-  justify-content: center;
-  background-color: transparent;
 }
 
 .score {
@@ -62,29 +50,84 @@ body {
   color: #6d6d6d;
 }
 
+.wrapper {
+  /* position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); */
+  /* width: 500px; */
+  /* height: 500px; */
+  display: flex;
+  justify-content: center;
+  background-color: transparent;
+}
+
+.snake-selector {
+  height: 500px;
+  width: 100px;
+  margin: 0 50px;
+  background-color: rgb(51, 0, 255, 0.3);
+  border-radius: 10px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.snake-type {
+  margin: 0 auto;
+  width: 50px;
+  height: 50px;
+  border-radius: 5px;
+}
+
+.snake-selector-ghost {
+  /* display: none; */
+  /* position: relative; */
+  height: 500px;
+  width: 100px;
+  margin: 0 50px;
+}
+
 .grid {
   display: grid;
   width: 500px;
   height: 500px;
   grid-template-columns: repeat(50, minmax(0, 1fr));
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .tile {
   width: 10px;
   height: 10px;
-  background-color: black;
+  background-color: #040026;
+}
+
+.tile-snake {
+  border-radius: 2px;
 }
 
 .tile-snake-white {
   background-color: white;
 }
-
+.tile-snake-yellow {
+  background-color: #ffbe0b;
+}
+.tile-snake-orange {
+  background-color: #fb5607;
+}
+.tile-snake-magenta {
+  background-color: #ff006e;
+}
+.tile-snake-purple {
+  background-color: #8338ec;
+}
 .tile-snake-blue {
-  background-color: blue;
+  background-color: #3a86ff;
 }
 
 .tile-empty {
-  background-color: black;
+  background-color: #040026;
 }
 
 .tile-apple {
@@ -96,13 +139,11 @@ body {
 
 @keyframes bite-anim {
   0% {
-    background-color: white;
   }
   50% {
     background-color: red;
   }
   100% {
-    background-color: white;
   }
 }
 

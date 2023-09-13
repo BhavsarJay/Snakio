@@ -7,9 +7,13 @@ const Direction = Object.freeze({
 const Tiletype = Object.freeze({
   EMPTY: 0,
   SNAKEWHITE: 1,
-  SNAKEBLUE: 2,
-  APPLE: 3,
-  SNAKEBITE: 4,
+  SNAKEYELLOW: 2,
+  SNAKEORANGE: 3,
+  SNAKEMAGENTA: 4,
+  SNAKEPURPLE: 5,
+  SNAKEBLUE: 6,
+  APPLE: 7,
+  SNAKEBITE: 8,
 });
 
 // Function to convert an integer to an enum value
@@ -70,19 +74,34 @@ function Board() {
       case Tiletype.EMPTY:
         tile.elem.className = "tile tile-empty";
         break;
+
       case Tiletype.SNAKEWHITE:
-        tile.elem.className = "tile tile-snake-white";
+        tile.elem.className = "tile tile-snake tile-snake-white";
+        break;
+      case Tiletype.SNAKEYELLOW:
+        tile.elem.className = "tile tile-snake tile-snake-yellow";
+        break;
+      case Tiletype.SNAKEORANGE:
+        tile.elem.className = "tile tile-snake tile-snake-orange";
+        break;
+      case Tiletype.SNAKEMAGENTA:
+        tile.elem.className = "tile tile-snake tile-snake-magenta";
+        break;
+      case Tiletype.SNAKEPURPLE:
+        tile.elem.className = "tile tile-snake tile-snake-purple";
         break;
       case Tiletype.SNAKEBLUE:
-        tile.elem.className = "tile tile-snake-blue";
+        tile.elem.className = "tile tile-snake tile-snake-blue";
         break;
+
       case Tiletype.APPLE:
         tile.elem.className = "tile tile-apple";
         break;
       case Tiletype.SNAKEBITE:
         tile.elem.className = "tile tile-snakebite";
+        break;
       default:
-        console.log("Unknown tile type: ", tile.type);
+        console.trace("Unknown tile type: ", tile.type);
         break;
     }
   };
@@ -104,11 +123,15 @@ function Tile(position, element) {
 }
 
 function Snako() {
+  let board;
+  let player;
   this.position;
   this.direction;
   this.color;
   let queue = [];
-  this.init = function (board, position, direction, color) {
+  this.init = function (_board, _player, position, direction, color) {
+    board = _board;
+    player = _player;
     this.direction = direction;
     this.color = color;
     this.position = position;
@@ -116,14 +139,14 @@ function Snako() {
     //Add next node
     queue = [];
     queue.push(position);
-    nextTile = board.getTile(position);
+    let nextTile = board.getTile(position);
 
     //SET SNAKE
-    if (this.color === "white") board.updateTile(nextTile, Tiletype.SNAKEWHITE);
-    else if (this.color === "blue")
-      board.updateTile(nextTile, Tiletype.SNAKEBLUE);
+    this.setTileColor(nextTile);
+
+    player.score_elem.innerHTML = queue.length;
   };
-  this.move = function (board, nextTile, targetPos) {
+  this.move = function (targetPos) {
     //Remove Last node
     pos = queue.shift();
     tile = board.getTile(pos);
@@ -131,23 +154,53 @@ function Snako() {
     //Add next node
     this.position = targetPos;
     queue.push(targetPos);
-    nextTile = board.getTile(targetPos);
+    let nextTile = board.getTile(targetPos);
 
     //SET SNAKE
-    if (this.color === "white") board.updateTile(nextTile, Tiletype.SNAKEWHITE);
-    else if (this.color === "blue")
-      board.updateTile(nextTile, Tiletype.SNAKEBLUE);
+    this.setTileColor(nextTile);
+
+    if (player.isMine) {
+      network.publish("move-" + playerOptn.id, { pos: targetPos });
+    }
+
+    player.score_elem.innerHTML = queue.length;
   };
-  this.eat = function (board, nextTile, targetPos) {
+  this.eat = function (targetPos) {
     //Add next node without removing last
     this.position = targetPos;
     queue.push(targetPos);
-    nextTile = board.getTile(targetPos);
+    let nextTile = board.getTile(targetPos);
 
     //SET SNAKE
-    if (this.color === "white") board.updateTile(nextTile, Tiletype.SNAKEWHITE);
-    else if (this.color === "blue")
-      board.updateTile(nextTile, Tiletype.SNAKEBLUE);
+    this.setTileColor(nextTile);
+
+    if (player.isMine) {
+      network.publish("eat-" + playerOptn.id, { pos: targetPos });
+    }
+
+    player.score_elem.innerHTML = queue.length;
+  };
+  this.hitWall = function () {
+    let currpos = this.position;
+    let tile = board.getTile(currpos);
+    board.updateTile(tile, Tiletype.SNAKEBITE);
+
+    if (player.isMine) {
+      network.publish("hitWall-" + playerOptn.id, { hitWall: true });
+    }
+  };
+  this.hitSnake = function (targetPos) {
+    //Add next node without removing last
+    this.position = targetPos;
+    queue.push(targetPos);
+    let nextTile = board.getTile(targetPos);
+
+    //Show which snake part did we hit
+    board.updateTile(nextTile, Tiletype.SNAKEBITE);
+
+    if (player.isMine) {
+      network.publish("hitSnake-" + playerOptn.id, { pos: targetPos });
+    }
   };
   this.clean = function (board) {
     //Remove Last node
@@ -156,8 +209,29 @@ function Snako() {
       board.updateTile(tile, Tiletype.EMPTY);
     }
   };
-  this.length = function () {
-    return queue.length;
+  this.setTileColor = function (nextTile) {
+    switch (this.color) {
+      case "white":
+        board.updateTile(nextTile, Tiletype.SNAKEWHITE);
+        break;
+      case "yellow":
+        board.updateTile(nextTile, Tiletype.SNAKEYELLOW);
+        break;
+      case "orange":
+        board.updateTile(nextTile, Tiletype.SNAKEORANGE);
+        break;
+      case "magenta":
+        board.updateTile(nextTile, Tiletype.SNAKEMAGENTA);
+        break;
+      case "purple":
+        board.updateTile(nextTile, Tiletype.SNAKEPURPLE);
+        break;
+      case "blue":
+        board.updateTile(nextTile, Tiletype.SNAKEBLUE);
+        break;
+      default:
+        break;
+    }
   };
 }
 
@@ -227,11 +301,18 @@ function Apple() {
   this.position;
   let tile;
   let board;
-  this.init = async function (_board) {
+  this.init = async function (_board, player) {
     board = _board;
     network.handleApple();
   };
   this.spawn = function () {
+    // //Remove previous apple
+    // if (this.position != undefined) {
+    //   tile = board.getTile(this.position);
+    //   board.updateTile(tile, Tiletype.EMPTY);
+    // }
+
+    // spawn new apple
     do {
       this.position = {
         x: parseInt(Math.random() * 50) + 1,
@@ -256,15 +337,20 @@ function Player() {
   let apple;
   let myOptn;
   let inp_direction;
-  let score_elem;
-  let snakeType;
+  this.score_elem;
   let step_intvl;
+  let pos_intvl;
   let tick = 1;
+  let speed = 100;
   let nextServerPos;
+  let isReset = false;
   // this.server_inp_buffer = {};
   this.client_inp_buffer = {};
   this.isMine;
 
+  this.get_snake = function () {
+    return snake;
+  };
   this.set_dir = function (val) {
     inp_direction = val;
   };
@@ -280,44 +366,38 @@ function Player() {
     this.isMine = isMine;
     myOptn = optn;
 
+    // initialize everyone once at start
+    this.reset();
+
     // Add Keyboard Listners if this is mine.
     if (this.isMine) {
       window.addEventListener("keydown", keyDownHandler.bind(null, this), true);
-    }
-
-    if (playerOptn.isHost) {
-      if (!this.isMine) {
-        network.subscribeInput(myOptn.id);
-      }
+      this.start();
     } else {
-      network.subscribePosition(myOptn.id);
+      network.subscribePeer(myOptn.id);
     }
-    network.subscribeReset(myOptn.id);
-
-    if (playerOptn.isHost)
-      network.channel.publish("reset-" + myOptn.id, { reset: true });
   };
   this.reset = function () {
+    // console.log("reset");
+    this.score_elem = document.getElementById(myOptn.id).children[1];
     inp_direction = myOptn.startDir;
     snake.clean(board);
-    snake.init(board, myOptn.startPos, myOptn.startDir, myOptn.color);
+    snake.init(board, this, myOptn.startPos, myOptn.startDir, myOptn.color);
     controls = myOptn.input;
-    score_elem = document.getElementById(myOptn.id).children[1];
-    if (myOptn.color == "white") snakeType = Tiletype.SNAKEWHITE;
-    else snakeType = Tiletype.SNAKEBLUE;
 
-    this.start();
+    // set isReset to false after resetting
+    isReset = false;
   };
   this.start = function () {
     clearInterval(step_intvl);
-    step_intvl = setInterval(() => {
-      if (playerOptn.isHost || this.isMine) this.step();
-    }, speed);
-    inp_intvl = setInterval(() => {
-      if (!playerOptn.isHost && this.isMine) this.sendInput();
-    }, 333);
+    clearInterval(pos_intvl);
+    if (this.isMine) {
+      step_intvl = setInterval(() => {
+        if (isReset === false) this.step();
+      }, speed);
+    }
   };
-  this.step = function (serverPos) {
+  this.step = function () {
     let nextPos = {};
     if (false && nextServerPos != undefined) {
       nextPos = nextServerPos;
@@ -329,43 +409,41 @@ function Player() {
       snake.direction = nextDir;
       nextPos = GetNextPos(snake.position, nextDir);
     }
-    if (serverPos != undefined) nextPos = serverPos;
-    let nextTile;
+
     if (nextPos === undefined || nextPos === 0) {
       // manager.reset();
       // Player Hit wall
-      clearInterval(step_intvl);
-      setTimeout(() => {
-        if (playerOptn.isHost)
-          network.channel.publish("reset-" + myOptn.id, { reset: true });
-      }, 1000);
       console.log("hit wall");
-      let currpos = snake.position;
-      nextTile = board.getTile(currpos);
-      board.updateTile(nextTile, Tiletype.SNAKEBITE);
+      snake.hitWall();
+      if (this.isMine) this.restart();
     } else {
-      nextTile = board.getTile(nextPos);
-      if (nextTile.type === Tiletype.EMPTY)
-        snake.move(board, nextTile, nextPos);
+      let nextTile = board.getTile(nextPos);
+
+      if (nextTile.type === Tiletype.EMPTY) snake.move(nextPos);
       else if (nextTile.type === Tiletype.APPLE) {
-        snake.eat(board, nextTile, nextPos);
-        if (playerOptn.isHost) apple.spawn();
+        snake.eat(nextPos);
+        apple.spawn();
       } else {
-        clearInterval(step_intvl);
-        setTimeout(() => {
-          if (playerOptn.isHost)
-            network.channel.publish("reset-" + myOptn.id, { reset: true });
-        }, 1000);
-        //Show which snake part did we hit
-        board.updateTile(nextTile, Tiletype.SNAKEBITE);
+        console.log("hit snake");
+        snake.hitSnake(nextPos);
+        if (this.isMine) this.restart();
       }
     }
 
-    if (playerOptn.isHost) this.sendPosition(nextPos, tick);
+    // if (playerOptn.isHost) this.sendPosition(nextPos, tick);
 
     // Update Score
-    score_elem.innerHTML = snake.length();
     tick++;
+  };
+  this.restart = function () {
+    isReset = true;
+    clearInterval(step_intvl);
+    setTimeout(() => {
+      // console.log("restart");
+      this.reset();
+      if (this.isMine) this.start();
+      network.publish("reset-" + myOptn.id, { reset: true });
+    }, 1000);
   };
   this.isValidDirection = function (direction) {
     let dot = parseInt(snake.direction) + parseInt(direction);
@@ -375,62 +453,11 @@ function Player() {
       return true;
     }
   };
-  this.sendInput = function () {
-    if (this.isMine) {
-      //Send inp with client tick to server(host)
-      let data = {};
-      data.dir = inp_direction;
-      data.tick = tick;
-      this.client_inp_buffer[data.tick] = data.dir;
-      // console.log(this.inp_buffer);
-      // console.log("Sending Input Data: ", data);
-      network.publish("input-" + myOptn.id, data);
-    }
-  };
-  this.sendPosition = function (position, tick) {
-    //Send pos with the same client tick to clients
-    let data = {};
-    data.pos = position;
-    data.tick = tick;
-    network.publish("position-" + myOptn.id, data);
-    // console.log("ServerSend: ","position-",myOptn.id," | Data: ",data);
-  };
-  this.handlePosition = function (nextPos, tick) {
-    // console.log("Position Received ", nextPos);
-    if (myOptn.id != playerOptn.id) {
-      // directly set the position for remote players
-      // nextServerPos = nextPos;
-      this.step(nextPos);
-    } else {
-      // nextServerPos = nextPos;
-      this.step(nextPos);
-      // for (let i = 1; i < tick; i++) {
-      //   if (this.client_inp_buffer[i] != undefined) {
-      //     delete this.client_inp_buffer[i];
-      //   }
-      // }
-      // let reconciledPos = nextPos;
-      // for (const tick in this.client_inp_buffer) {
-      //   reconciledPos = GetNextPos(pos, this.client_inp_buffer[tick]);
-      //   delete this.client_inp_buffer[tick];
-      // }
-      // this.step(nextPos);
-      // if (JSON.stringify(reconciledPos) != JSON.stringify(snake.position)) {
-      //   nextServerPos = reconciledPos;
-      //   console.log("incorrect position...correcting based on server position");
-      // }
-    }
-  };
-  this.handleInput = function (dir, tick) {
-    // console.log("Input Received ", myOptn.id, dir);
-    inp_direction = dir;
-    // move the client
-    // this.server_inp_buffer[tick] = dir;
-  };
 }
 
 function Manager() {
   const board = new Board();
+  board.init();
   const apple = new Apple();
   this.members = [];
   let myPlayer;
@@ -439,7 +466,6 @@ function Manager() {
     return apple;
   };
   this.init = async function (optns) {
-    board.init();
     apple.init(board);
     if (playerOptn.isHost) apple.spawn();
 
@@ -545,6 +571,10 @@ function Network() {
   this.handleLobby = async function () {
     await this.channel.subscribe("lobby", (message) => {
       if (message.data.start === true) {
+        elems = document.getElementsByClassName("remove-on-start");
+        Object.values(elems).forEach((element) => {
+          element.style.display = "none";
+        });
         document.getElementById("start-btn").style.display = "none";
         manager.init(playerOptn);
       }
@@ -557,32 +587,50 @@ function Network() {
       let p = manager.getPlayer(id);
       p.handleInput(message.data.dir, message.data.tick);
     });
-    console.log("Subscribed to :", channelName);
+    // console.log("Subscribed to :", channelName);
   };
-  this.subscribePosition = async function (id) {
-    let channelName = "position-" + id;
-    await this.channel.subscribe(channelName, (message) => {
-      // console.log("Client Got position for: ", channelName);
-      let p = manager.getPlayer(id);
-      p.handlePosition(message.data.pos, message.data.tick);
-    });
-    console.log("Subscribed to :", channelName);
-  };
-  this.subscribeReset = async function (id) {
-    let channelName = "reset-" + id;
-    await this.channel.subscribe(channelName, (message) => {
-      // console.log("Client Got position for: ", channelName);
-      let p = manager.getPlayer(id);
-      p.reset();
-    });
-    console.log("Subscribed to :", channelName);
+  this.subscribePeer = async function (id) {
+    let actions = ["reset", "move", "eat", "hitWall", "hitSnake"];
+    for (const action of actions) {
+      let channelName = action + "-" + id;
+      await this.channel.subscribe(channelName, (message) => {
+        let p = manager.getPlayer(id);
+        if (p === undefined) {
+          console.log("Couldnt get player");
+          return;
+        }
+
+        // console.log(channelName, "-", id);
+        switch (channelName.split("-")[0]) {
+          case "reset":
+            p.reset();
+            break;
+          case "move":
+            p.get_snake().move(message.data.pos);
+            break;
+          case "eat":
+            p.get_snake().eat(message.data.pos);
+            break;
+          case "hitWall":
+            p.get_snake().hitWall();
+            break;
+          case "hitSnake":
+            p.get_snake().hitSnake(message.data.pos);
+            break;
+          default:
+            console.log("No such channel name");
+            break;
+        }
+      });
+      // console.log("Subscribed to :", channelName);
+    }
   };
   this.handleApple = async function () {
     await network.channel.subscribe("apple", (message) => {
       let apple = manager.getApple();
       if (message.clientId === playerOptn.id) return;
       let pos = message.data;
-      console.log("Apple Position:", pos);
+      // console.log("Apple Position:", pos);
       apple.position = pos;
       apple.show();
     });
@@ -624,9 +672,27 @@ async function onStart() {
   document.getElementById("start-btn").style.display = "none";
 }
 
+function selectSnake() {
+  const snakes = document.getElementsByClassName("snake-type");
+  Object.values(snakes).forEach((snakeType) => {
+    snakeType.addEventListener("click", () => {
+      playerOptn.color = snakeType.id;
+      network.channel.presence.update(playerOptn);
+      console.log(playerOptn.color);
+      Object.values(snakes).forEach((snake) => {
+        if (snake != snakeType) {
+          snake.style.opacity = 0.5;
+        } else {
+          snake.style.opacity = 1;
+        }
+      });
+    });
+  });
+}
+
 const manager = new Manager();
 const network = new Network();
-var speed = 100;
 network.manager = manager;
 
+selectSnake();
 connectAbly();
