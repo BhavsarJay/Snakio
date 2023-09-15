@@ -166,10 +166,21 @@ body {
   font-size: 2.5rem;
 }
 
-.blue-text {
-  color: blue;
-}
-
 .white-text {
   color: white;
+}
+.yellow-text {
+  color: #ffbe0b;
+}
+.orange-text {
+  color: #fb5607;
+}
+.magenta-text {
+  color: #ff006e;
+}
+.purple-text {
+  color: #8338ec;
+}
+.blue-text {
+  color: #3a86ff;
 }

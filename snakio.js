@@ -202,11 +202,21 @@ function Snako() {
       network.publish("hitSnake-" + playerOptn.id, { pos: targetPos });
     }
   };
+  this.turnToApples = function (apple) {
+    // Turn to apples
+    queue.forEach((pos) => {
+      apple.spawn(pos);
+      const indexToRemove = queue.indexOf(pos);
+      if (indexToRemove !== -1) {
+        queue.splice(indexToRemove, 1); // Remove one element at the specified index
+      }
+    });
+  };
   this.clean = function (board) {
     //Remove Last node
     for (pos of queue) {
-      tile = board.getTile(pos);
-      board.updateTile(tile, Tiletype.EMPTY);
+      let tile = board.getTile(pos);
+      if (tile != Tiletype.APPLE) board.updateTile(tile, Tiletype.EMPTY);
     }
   };
   this.setTileColor = function (nextTile) {
@@ -239,18 +249,22 @@ function GetNextPos(position, direction) {
   switch (direction) {
     case Direction.UP:
       if (position.y > 1) return { x: position.x, y: position.y - 1 };
+      else if (position.y === 1) return { x: position.x, y: 50 };
       else return 0;
       break;
     case Direction.DOWN:
       if (position.y < 50) return { x: position.x, y: position.y + 1 };
+      else if (position.y === 50) return { x: position.x, y: 1 };
       else return 0;
       break;
     case Direction.LEFT:
       if (position.x > 1) return { x: position.x - 1, y: position.y };
+      else if (position.x === 1) return { x: 50, y: position.y };
       else return 0;
       break;
     case Direction.RIGHT:
       if (position.x < 50) return { x: position.x + 1, y: position.y };
+      else if (position.x === 50) return { x: 1, y: position.y };
       else return 0;
       break;
     default:
@@ -299,13 +313,14 @@ function keyDownHandler(player, event) {
 
 function Apple() {
   this.position;
+  this.power = 1;
   let tile;
   let board;
   this.init = async function (_board, player) {
     board = _board;
     network.handleApple();
   };
-  this.spawn = function () {
+  this.spawn = function (position) {
     // //Remove previous apple
     // if (this.position != undefined) {
     //   tile = board.getTile(this.position);
@@ -313,15 +328,20 @@ function Apple() {
     // }
 
     // spawn new apple
-    do {
-      this.position = {
-        x: parseInt(Math.random() * 50) + 1,
-        y: parseInt(Math.random() * 50) + 1,
-      };
-      console.log("Apple:", this.position);
-      tile = board.getTile(this.position);
-    } while (tile.type != Tiletype.EMPTY);
-
+    let newPos;
+    if (position === undefined) {
+      do {
+        newPos = {
+          x: parseInt(Math.random() * 50) + 1,
+          y: parseInt(Math.random() * 50) + 1,
+        };
+        console.log("Apple:", newPos);
+        tile = board.getTile(newPos);
+      } while (tile.type != Tiletype.EMPTY);
+    } else {
+      newPos = position;
+    }
+    this.position = newPos;
     this.show();
     network.publish("apple", this.position);
   };
@@ -341,7 +361,7 @@ function Player() {
   let step_intvl;
   let pos_intvl;
   let tick = 1;
-  let speed = 100;
+  let speed = 150;
   let nextServerPos;
   let isReset = false;
   // this.server_inp_buffer = {};
@@ -379,6 +399,7 @@ function Player() {
   };
   this.reset = function () {
     // console.log("reset");
+    tick = 0;
     this.score_elem = document.getElementById(myOptn.id).children[1];
     inp_direction = myOptn.startDir;
     snake.clean(board);
@@ -398,6 +419,11 @@ function Player() {
     }
   };
   this.step = function () {
+    while (tick < 10) {
+      tick++;
+      // console.log(tick);
+      return;
+    }
     let nextPos = {};
     if (false && nextServerPos != undefined) {
       nextPos = nextServerPos;
@@ -419,12 +445,17 @@ function Player() {
     } else {
       let nextTile = board.getTile(nextPos);
 
-      if (nextTile.type === Tiletype.EMPTY) snake.move(nextPos);
-      else if (nextTile.type === Tiletype.APPLE) {
+      if (nextTile.type === Tiletype.EMPTY) {
+        snake.move(nextPos);
+      } else if (nextTile.type === Tiletype.APPLE) {
         snake.eat(nextPos);
         apple.spawn();
       } else {
         console.log("hit snake");
+
+        // Spawn Apple for each snake body part
+        snake.turnToApples(apple);
+
         snake.hitSnake(nextPos);
         if (this.isMine) this.restart();
       }
@@ -443,7 +474,7 @@ function Player() {
       this.reset();
       if (this.isMine) this.start();
       network.publish("reset-" + myOptn.id, { reset: true });
-    }, 1000);
+    }, 3000);
   };
   this.isValidDirection = function (direction) {
     let dot = parseInt(snake.direction) + parseInt(direction);
@@ -512,9 +543,9 @@ function Network() {
     let memberList = members
       .map((member) => {
         return `
-        <tr id="${member.clientId}">
+        <tr class="${member.data.color}-text" id="${member.clientId}">
           <td class="player-name">${member.clientId}</td>
-          <td class="score">0</td>
+          <td class="${member.data.color}-text score">0</td>
         </tr>`;
       })
       .join("");
